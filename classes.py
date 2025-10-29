@@ -63,19 +63,18 @@ class Record:
         for i, p in enumerate(self.phones):
             if p.value == old_phone:
                 self.phones[i] = Phone(new_phone)
-                return f"Contact name: {self.name}, phone: {old_phone} was changed to phone: {new_phone}"
+                return None
         raise ValueError(f"Phone number '{old_phone}' not found.")
 
-    def find_phone(self, phone: str) -> Optional[Phone]:
+    def find_phone(self, phone: str) -> None:
         for p in self.phones:
             if p.value == phone:
                 return p
         return None
 
-    def add_birthday(self, birthday: str):
+    def add_birthday(self, birthday: str) -> None:
         if birthday:
             self.birthday = Birthday(birthday)
-            return f"Birthday date has been added to {self.name}'s record"
 
     def __str__(self):
         phones = '\n    '.join(p.value for p in self.phones) or '—'
@@ -92,18 +91,16 @@ class Record:
 
 class Birthday(Field):
     def __init__(self, value: str):
-        date_format = '%d.%m.%Y'
+        date_format = "%d.%m.%Y"
         try:
-            self.date_value = datetime.strptime(value, date_format).date()
+            datetime.strptime(value, date_format)
         except ValueError:
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
         super().__init__(value)
 
-    def __str__(self):
-        return self.value  # keeps the original string format
-
-    def __repr__(self):
-        return f"Birthday({self.value})"
+    @property
+    def as_date(self):
+        return datetime.strptime(self.value, "%d.%m.%Y").date()
 
 
 class AddressBook(UserDict):
@@ -141,7 +138,7 @@ class AddressBook(UserDict):
             if not bd:
                 continue
 
-            birthday_this_year = bd.date_value.replace(year=today.year)
+            birthday_this_year = bd.as_date.replace(year=today.year)
             if birthday_this_year < today:
                 birthday_this_year = birthday_this_year.replace(year=today.year + 1)
 

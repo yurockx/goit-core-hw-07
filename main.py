@@ -24,18 +24,20 @@ def parse_input(user_input):
     return cmd, args
 
 
+def find_record(name, book: AddressBook):
+    record = book.find(name)
+    if record:
+        return record
+    raise KeyError(f"No contact found with the name '{name}'")
+
 @input_error
 def change_number(args, book: AddressBook):
-    # Updates a contact's phone number.
     if len(args) != 3:
-        raise ValueError("Invalid number of arguments for change command. Use: change [name] [old number] [new number]")
+        raise ValueError("Use: change [name] [old number] [new number]")
     name, old_number, new_number, *_ = args
-    record = book.find(name)
-    # a contact presense validation
-    if record:
-        return record.edit_phone(old_number, new_number)
-    else:
-        raise KeyError(f"There is no contact with the name: '{name}'")
+    record = find_record(name, book)
+    record.edit_phone(old_number, new_number)
+    return f"Contact '{name}' changed: {old_number} → {new_number}"
 
 
 @input_error
@@ -68,25 +70,23 @@ def find_contact(args, book: AddressBook):
         name = args[0]
     else:
         raise ValueError("Invalid number of arguments. Use: phone [name]")
-    record = book.find(name)
-    if record:
-        if record.phones:
-            phones = ', '.join(map(str, record.phones))
-            return f"{name}'s phones: {phones}"
-        else:
-            return f"The contact with the name: {name} has no phones yet"
+    record = find_record(name, book)
+    if record.phones:
+        phones = ', '.join(map(str, record.phones))
+        return f"{name}'s phones: {phones}"
     else:
-        raise KeyError(f"There is no contact with the name: '{name}'")
+        return f"The contact with the name: {name} has no phones yet"
 
 
 @input_error
 def add_bd(args, book: AddressBook):
-    if len(args) >= 2:
+    if len(args) == 2:
         name, birthday = args[:2]
     else:
         raise ValueError("Invalid number of arguments. Use: Add-birtday [name] [birthday] in the format: DD.MM.YYYY")
-    record = book.find(name)
-    return record.add_birthday(birthday)
+    record = find_record(name, book)
+    record.add_birthday(birthday)
+    return f"The birthday date was added to {name}'s record"
 
 
 @input_error
@@ -95,7 +95,7 @@ def show_bd(args, book: AddressBook):
         name = args[0]
     else:
         raise ValueError("Invalid number of arguments. Use: Show-birthday [name]")
-    record = book.find(name)
+    record = find_record(name, book)
     bd = getattr(record, "birthday", None)
     if bd:
         return bd
@@ -107,11 +107,17 @@ def show_bd(args, book: AddressBook):
 def show_up_bds(book: AddressBook):
     birthdays = book.show_upcoming_birthdays()
     if birthdays:
-        result = [f"{len(birthdays)} upcoming birthdays found!"]
-        result.extend(f"Name: {b['name']}, Congratulations date: {b['congratulation_date']}" for b in birthdays)
-        return "\n".join(result)
+        return "\n".join(
+            [f"{len(birthdays)} upcoming birthdays found!"] +
+            [f"Name: {b['name']}, Congratulations date: {b['congratulation_date']}" for b in birthdays]
+            )
     else:
         return "No upcoming birthdays found in the next 7 days."
+
+
+@input_error
+def show_all(book: AddressBook):
+    return str(book)
 
 
 def main():
@@ -132,15 +138,15 @@ def main():
           """)
     print("Welcome to the assistant bot!\n"
           "Please use the following commands:\n"
-          "1. Hello\n"
-          "2. Add\n"
-          "3. Phone\n"
-          "4. Change\n"
-          "5. All\n"
-          "6. Add-birtday\n"
-          "7. Show-birthday\n"
-          "8. Birthdays\n"
-          "9. Close or Exit\n")
+          "1. hello\n"
+          "2. add\n"
+          "3. phone\n"
+          "4. change\n"
+          "5. all\n"
+          "6. add-birtday\n"
+          "7. show-birthday\n"
+          "8. birthdays\n"
+          "9. close or Exit\n")
 
     while True:
         user_input = input("Enter a command: ")
@@ -163,7 +169,7 @@ def main():
             print(find_contact(args, book))
 
         elif command == "all":
-            print(book)
+            print(show_all(book))
 
         elif command == "add-birthday":
             print(add_bd(args, book))
